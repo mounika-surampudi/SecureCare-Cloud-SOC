@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SecureCare - AP Emergency Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="manifest" href="/manifest.json">
+<style>
+body{background:radial-gradient(circle,#0a2a1e 0%,#020a0f 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;color:white}
+.card-login{background:#0a141e;border:2px solid #00ff88;box-shadow:0 0 40px #00ff8855;border-radius:20px;max-width:480px;width:95%}
+.text-neon{color:#00ff88;text-shadow:0 0 10px #00ff88}
+.btn-enter{background:#00ff88;color:black;font-weight:800;border:none;padding:14px;font-size:18px;border-radius:12px;box-shadow:0 0 20px #00ff88}
+.input-andhra{background:#000;border:1.5px solid #00ff88;color:white;padding:15px;font-size:16px;border-radius:12px}
+.input-andhra:focus{background:#000;color:white;border-color:#00d4ff;box-shadow:0 0 15px #00d4ff88}
+</style>
+</head>
+<body>
+<div class="card-login p-4 text-center">
+<div style="font-size:40px">🛡️</div>
+<h3 class="text-neon fw-bold mt-2">SecureCare Cloud SOC</h3>
+<p class="text-info" style="font-size:14px">Andhra Pradesh Emergency Response</p>
+<div class="mt-4 text-start">
+<label class="text-neon mb-2 fw-bold" style="font-size:14px">📍 Enter Your Location - Every Village Covered</label>
+<input id="locationInput" class="form-control input-andhra" placeholder="Type: Ponnur, Bapatla, Tanuku, Peravali..." list="andhraPlaces">
+<datalist id="andhraPlaces">
+<option value="Ponnur"><option value="Bapatla"><option value="Repalle"><option value="Tenali"><option value="Guntur"><option value="Chirala"><option value="Kovvur"><option value="Rajahmundry"><option value="Tanuku"><option value="Kakinada"><option value="Eluru"><option value="Bhimavaram"><option value="Nidadavole"><option value="Peravali"><option value="Attili"><option value="Velpur"><option value="Undrajavaram"><option value="Penugonda"><option value="Cherukupalle"><option value="Nizampatnam"><option value="Visakhapatnam"><option value="Vijayawada"><option value="Tirupati"><option value="Ongole">
+</datalist>
+<button onclick="enterApp()" class="btn btn-enter w-100 mt-4">🚀 Enter Dashboard</button>
+<button onclick="useGPSLogin()" class="btn btn-outline-success w-100 mt-2 btn-sm">📍 Use My GPS</button>
+</div>
+</div>
+<script>
+function enterApp(){ let loc=document.getElementById('locationInput').value.trim(); if(!loc){alert("Enter location! Ex: Ponnur"); return;} window.location.href="/dashboard?city="+encodeURIComponent(loc); }
+function useGPSLogin(){ if(!navigator.geolocation) return; navigator.geolocation.getCurrentPosition(pos=>{ window.location.href=`/main?city=MyLocation&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`; }); }
+document.getElementById('locationInput').addEventListener('keypress',e=>{ if(e.key==='Enter') enterApp(); });
+</script>
+</body>
+</html>

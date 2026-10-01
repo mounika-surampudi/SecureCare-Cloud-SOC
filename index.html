@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SecureCare - Green Dots Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+body{background:#020a0f;color:white;font-family:Segoe UI}
+.card-custom{background:#0a141e;border:1px solid #00ff88;border-radius:15px}
+.text-neon{color:#00ff88;text-shadow:0 0 8px #00ff88}
+#map{height:85vh;border-radius:15px;border:2px solid #00ff88}
+.input-dark{background:black;border:1px solid #00ff88;color:white;padding:12px}
+.hospital-card{background:#111;border-left:5px solid #00ff88;border-radius:12px;padding:12px;margin-bottom:12px}
+.hospital-name{color:#ffffff!important; font-weight:bold; font-size:16px;}
+.green-dot{width:18px;height:18px;background:#00ff88;border:2px solid white;border-radius:50%;box-shadow:0 0 10px #00ff88}
+.user-dot{width:20px;height:20px;background:#ff4444;border:3px solid white;border-radius:50%;box-shadow:0 0 15px red}
+.top-banner{background:#ccffdd;color:black;font-weight:bold;padding:6px;border-radius:8px;font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="container-fluid p-2">
+<div class="top-banner">✅ Ponnur Fixed | Green = Hospitals | Red = You | Distance YELLOW | Blood RED BOX | Every Village Covered</div>
+<div class="row mt-2">
+<div class="col-md-4">
+<div class="card-custom p-3">
+<h6 class="text-neon">📍 Click Map or Search</h6>
+<input id="city" class="form-control input-dark" placeholder="Ponnur, Bapatla, Tanuku..." list="cities" value="{{ user_city }}">
+<datalist id="cities"><option value="Ponnur"><option value="Bapatla"><option value="Repalle"><option value="Tanuku"><option value="Peravali"><option value="Attili"><option value="Kovvur"><option value="Rajahmundry"><option value="Vijayawada"></datalist>
+<button onclick="findHospitals()" class="btn btn-success w-100 mt-2 fw-bold">🔍 Search</button>
+<button onclick="useGPS()" class="btn btn-outline-success w-100 mt-2">📍 My GPS</button>
+<div id="selectedLoc" class="mt-2 p-2 bg-black rounded border border-success" style="font-size:11px;color:#00ff88">Click on map!</div>
+<h6 class="text-neon mt-3">🏥 Nearby - Distance + Blood</h6>
+<div id="hospitalList" style="max-height:60vh;overflow-y:auto"><div class="text-center p-4" style="color:#666">Searching...</div></div>
+</div>
+</div>
+<div class="col-md-8"><div id="map"></div></div>
+</div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let map = L.map('map').setView([16.7527, 81.6810], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+let userMarker=null; let hospitalMarkers=[];
+const greenIcon = L.divIcon({className:'',html:'<div class="green-dot"></div>',iconSize:[18,18],iconAnchor:[9,9]});
+const redIcon = L.divIcon({className:'',html:'<div class="user-dot"></div>',iconSize:[20,20],iconAnchor:[10,10]});
+function clearMarkers(){ hospitalMarkers.forEach(m=>map.removeLayer(m)); hospitalMarkers=[]; }
+map.on('click', e=>{ showNearby(e.latlng.lat, e.latlng.lng); });
+async function showNearby(lat, lon){
+  if(userMarker) map.removeLayer(userMarker);
+  userMarker = L.marker([lat, lon], {icon: redIcon, draggable:true}).addTo(map);
+  userMarker.bindPopup(`<b style="color:black">📍 YOU</b><br>${lat.toFixed(4)},${lon.toFixed(4)}`).openPopup();
+  map.setView([lat, lon], 13);
+  document.getElementById('selectedLoc').innerHTML=`📍 ${lat.toFixed(4)},${lon.toFixed(4)} - Finding hospitals...`;
+  try{ let rev=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`).then(r=>r.json()); document.getElementById('selectedLoc').innerHTML=`📍 <span style="color:white">${rev.display_name.substring(0,80)}...</span>`; }catch{}
+  let res = await fetch(`/api/nearby?lat=${lat}&lon=${lon}`).then(r=>r.json());
+  renderHospitals(res.nearest_hospitals, lat, lon);
+}
+function renderHospitals(hospitals, userLat, userLon){
+  clearMarkers(); let html="";
+  hospitals.forEach((h, idx)=>{
+    let marker = L.marker([h.lat, h.lon], {icon: greenIcon}).addTo(map);
+    marker.bindPopup(`<b style="color:black">${h.name}</b><br><span style="color:green">${h.distance} km</span><br>${h.address}`);
+    hospitalMarkers.push(marker);
+    html+=`
+    <div class="hospital-card" style="border-left-color:${idx==0?'#ffff00':'#00ff88'};background:${idx==0?'#222200':'#111'}">
+      <div class="hospital-name">🏥 ${h.name}</div>
+      <div style="background:${idx==0?'#ffff00':'#00ff88'};color:black;border-radius:20px;padding:4px 12px;display:inline-block;font-size:13px;font-weight:900;margin:6px 0">📍 ${h.distance} km away ${idx==0?'• NEAREST':''}</div>
+      <div style="font-size:11px;color:#ccc">📍 ${h.address} | ${h.area}</div>
+      <div style="font-size:11px;color:#ff88aa">📞 ${h.contact}</div>
+      <div style="background:#330000;border:1px solid #ff4444;border-radius:10px;padding:8px;margin-top:8px">
+        <div style="color:#ff4444;font-weight:bold;font-size:11px">🩸 BLOOD BANKS:</div>
+        <div style="margin-top:4px">${Object.entries(h.blood).map(([bg,qty])=>`<span style="background:${qty>0?'#00ff88':'#ff0000'};color:${qty>0?'black':'white'};border-radius:5px;padding:3px 6px;font-size:11px;font-weight:bold;margin:2px;display:inline-block">${bg}:${qty}${qty>0?'✅':''}</span>`).join('')}</div>
+      </div>
+      <a href="https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lon}" target="_blank" class="btn btn-warning w-100 mt-2 btn-sm fw-bold">🧭 Direction ${h.distance}km</a>
+      <a href="tel:${h.contact}" class="btn btn-outline-info w-100 mt-1 btn-sm" style="color:white">📞 Call</a>
+    </div>`;
+  });
+  document.getElementById('hospitalList').innerHTML=html || "<div style='color:white;text-align:center'>No hospitals in 25km</div>";
+}
+async function findHospitals(){ let city=document.getElementById('city').value.trim(); if(!city) return; let res=await fetch(`/api/find_hospitals?city=${encodeURIComponent(city)}`).then(r=>r.json()); if(res.city_center) showNearby(res.city_center.lat,res.city_center.lon); }
+function useGPS(){ navigator.geolocation.getCurrentPosition(pos=>{ showNearby(pos.coords.latitude,pos.coords.longitude); }); }
+window.onload=()=>{ let c="{{ user_city }}"; if(c) findHospitals(); else showNearby(16.0644,80.5546); };
+</script>
+</body>
+</html>
